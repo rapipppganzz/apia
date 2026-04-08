@@ -25,35 +25,24 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: "Nomor & nama wajib diisi" });
     }
 
-    for (let acc of accounts) {
+    // Eksekusi pengiriman email secara paralel (bersamaan) biar cepat dan ga kena timeout Vercel
+    const emailPromises = accounts.map(acc => {
       const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: acc,
         tls: { rejectUnauthorized: false }
       });
 
-      await transporter.sendMail({
+      return transporter.sendMail({
         from: acc.user,
         to: "support@whatsapp.com",
         subject: "Appeal for Restricted WhatsApp Account",
-        text: `Dear WhatsApp Support Team,
-
-I am writing to formally appeal the restriction placed on my WhatsApp account associated with the number: ${nomor}.
-
-I believe this action may have been taken in error or due to a misinterpretation of my recent activity. I have not engaged in spam, automated messaging, or any behavior that intentionally violates WhatsApp’s Terms of Service.
-
-This account is essential for my daily communication, and the current restriction has significantly impacted my ability to stay connected.
-
-I respectfully request a thorough review of my account. If any activity has been flagged incorrectly, I kindly ask for clarification so I can ensure full compliance moving forward.
-
-Thank you for your time and consideration. I look forward to your response.
-
-Sincerely,  
-${nama}`,
+        text: `Dear WhatsApp Support Team,\n\nI am writing to formally appeal the restriction placed on my WhatsApp account associated with the number: ${nomor}.\n\nI believe this action may have been taken in error or due to a misinterpretation of my recent activity. I have not engaged in spam, automated messaging, or any behavior that intentionally violates WhatsApp’s Terms of Service.\n\nThis account is essential for my daily communication, and the current restriction has significantly impacted my ability to stay connected.\n\nI respectfully request a thorough review of my account. If any activity has been flagged incorrectly, I kindly ask for clarification so I can ensure full compliance moving forward.\n\nThank you for your time and consideration. I look forward to your response.\n\nSincerely,\n${nama}`,
       });
+    });
 
-      await new Promise(r => setTimeout(r, 10000));
-    }
+    // Tunggu semua proses pengiriman email selesai
+    await Promise.allSettled(emailPromises);
 
     res.status(200).json({ message: "Banding berhasil dikirim 🚀" });
 
