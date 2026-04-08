@@ -12,20 +12,24 @@ const accounts = [
 ];
 
 export default async function handler(req, res) {
-  const { nomor, nama } = req.body;
 
-  if (!nomor || !nama) {
-    return res.status(400).json({ message: "Nomor & nama wajib diisi" });
+  if (req.method === "GET") {
+    return res.status(200).json({ message: "API siap 🔥 pakai POST ya" });
   }
 
   try {
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const { nomor, nama } = body || {};
+
+    if (!nomor || !nama) {
+      return res.status(400).json({ message: "Nomor & nama wajib diisi" });
+    }
+
     for (let acc of accounts) {
       const transporter = nodemailer.createTransport({
         service: "gmail",
-        auth: {
-          user: acc.user,
-          pass: acc.pass,
-        },
+        auth: acc,
+        tls: { rejectUnauthorized: false }
       });
 
       await transporter.sendMail({
@@ -48,12 +52,13 @@ Sincerely,
 ${nama}`,
       });
 
-      // delay biar aman
       await new Promise(r => setTimeout(r, 10000));
     }
 
     res.status(200).json({ message: "Banding berhasil dikirim 🚀" });
+
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message });
   }
 }
